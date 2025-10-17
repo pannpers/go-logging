@@ -1,6 +1,3 @@
-run:
-  timeout: 5m
-
 linters:
   enable:
     - gofmt
@@ -21,9 +18,3 @@ linters-settings:
     check-shadowing: true
   misspell:
     locale: US
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gocyclo
