@@ -1,0 +1,16 @@
+# Global owners
+* @pannpers
+
+# Core library files
+/apperr/ @pannpers
+/apperr/codes/ @pannpers
+
+# Connect integration
+/apperr/connect/ @pannpers
+
+# Documentation
+README.md @pannpers
+CONTRIBUTING.md @pannpers
+
+# CI/CD
+.github/ @pannpers
