@@ -23,6 +23,13 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
 
+    - name: Debug Go environment
+      run: |
+        go version
+        go env GOROOT
+        go env GOPATH
+        go env GOMOD
+
     - name: Cache Go modules
       uses: actions/cache@v3
       with:
@@ -38,10 +45,9 @@ jobs:
       run: go mod verify
 
     - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out ./...
-
-    - name: Run tests with coverage
-      run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+      run: |
+        set -e
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Upload coverage to Codecov
       if: matrix.go-version == '1.25' && matrix.os == 'ubuntu-latest'
