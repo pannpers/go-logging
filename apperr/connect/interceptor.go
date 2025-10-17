@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"connectrpc.com/connect"
+
 	"github.com/pannpers/go-apperr/apperr"
 )
 

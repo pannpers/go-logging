@@ -48,4 +48,4 @@ coverage.html
 dist/
 build/
 
-./claude/settings.local.json
+settings.local.json

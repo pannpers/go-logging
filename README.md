@@ -21,7 +21,7 @@ A comprehensive Go error handling library with gRPC/Connect-RPC status codes, st
 ## Requirements
 
 - Go 1.21 or later (required for `log/slog` features)
-- Target version: Go 1.25
+- Target version: Go 1.24
 
 ## Installation
 

@@ -1,20 +1,25 @@
+version: "2"
+
 linters:
   enable:
-    - gofmt
-    - goimports
     - govet
     - errcheck
     - staticcheck
     - unused
-    - gosimple
     - ineffassign
-    - typecheck
     - misspell
+  settings:
+    govet:
+      enable:
+        - shadow
+    misspell:
+      locale: US
 
-linters-settings:
-  goimports:
-    local-prefixes: github.com/pannpers/go-apperr
-  govet:
-    check-shadowing: true
-  misspell:
-    locale: US
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/pannpers/go-apperr

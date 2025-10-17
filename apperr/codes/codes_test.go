@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+
 	"github.com/pannpers/go-apperr/apperr/codes"
 )
 

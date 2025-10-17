@@ -152,7 +152,7 @@ func TestStacktraceThreadSafety(t *testing.T) {
 	done := make(chan bool)
 
 	// Writer goroutines
-	for i := range 100 {
+	for i := 0; i < 100; i++ {
 		go func(val bool) {
 			apperr.Configure(apperr.WithStacktrace(val))
 			done <- true
@@ -160,7 +160,7 @@ func TestStacktraceThreadSafety(t *testing.T) {
 	}
 
 	// Reader goroutines
-	for range 100 {
+	for i := 0; i < 100; i++ {
 		go func() {
 			_ = apperr.IsStacktraceEnabled()
 			done <- true
@@ -168,7 +168,7 @@ func TestStacktraceThreadSafety(t *testing.T) {
 	}
 
 	// Wait for all goroutines
-	for range 200 {
+	for i := 0; i < 200; i++ {
 		<-done
 	}
 

@@ -21,6 +21,7 @@ This project adheres to a code of conduct that we expect all contributors to fol
 ### Prerequisites
 
 - Go 1.21 or later (required for `log/slog` features)
+- Target version: Go 1.25
 - Git
 
 ### Setting up the development environment
