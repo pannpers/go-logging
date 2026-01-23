@@ -3,15 +3,14 @@ package logging_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/pannpers/go-backend-scaffold/pkg/logging"
-	"github.com/stretchr/testify/assert"
+	"github.com/pannpers/go-logging/logging"
 )
 
 // mockMessage represents a simple message for testing.
@@ -123,17 +122,14 @@ func TestNewAccessLogInterceptor(t *testing.T) {
 			var buf bytes.Buffer
 
 			// Create logger with buffer output and without time/duration for consistent testing
-			logger := logging.New(
+			logger, err := logging.New(
 				logging.WithLevel(slog.LevelInfo),
 				logging.WithFormat(logging.FormatJSON),
 				logging.WithWriter(&buf),
-				logging.WithReplaceAttr(func(_ []string, a slog.Attr) slog.Attr {
-					if a.Key == slog.TimeKey || a.Key == "duration_ms" {
-						return slog.Attr{} // Discard time and duration attributes for test stability
-					}
-					return a
-				}),
 			)
+			if err != nil {
+				t.Fatalf("failed to create logger: %v", err)
+			}
 
 			// Create access log interceptor
 			interceptor := logging.NewAccessLogInterceptor(logger)
@@ -153,7 +149,7 @@ func TestNewAccessLogInterceptor(t *testing.T) {
 			}
 
 			// Create mock next function
-			next := func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			next := func(_ context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
 				if tc.args.err != nil {
 					return nil, tc.args.err
 				}
@@ -166,16 +162,26 @@ func TestNewAccessLogInterceptor(t *testing.T) {
 
 			// Verify error handling
 			if tc.wantErr != nil {
-				assert.Error(t, err)
-				assert.ErrorIs(t, err, tc.wantErr)
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				if !errors.Is(err, tc.wantErr) {
+					t.Errorf("expected error %v, got %v", tc.wantErr, err)
+				}
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, resp)
+				if err != nil {
+					t.Errorf("expected no error but got: %v", err)
+				}
+				if resp == nil {
+					t.Errorf("expected response but got nil")
+				}
 			}
 
 			// Verify log output using JSONEq
 			logOutput := strings.TrimSpace(buf.String())
-			assert.NotEmpty(t, logOutput, "Expected log output but got empty")
+			if logOutput == "" {
+				t.Errorf("expected log output but got empty")
+			}
 
 			// Extract expected values for JSON comparison
 			expectedUserAgent := tc.args.headers["User-Agent"]
@@ -188,19 +194,53 @@ func TestNewAccessLogInterceptor(t *testing.T) {
 				expectedMethod = "POST"
 			}
 
-			// Build expected JSON
-			expectedJSON := fmt.Sprintf(`{
-				"level": "INFO",
-				"msg": "Access log",
-				"procedure": "%s",
-				"method": "%s",
-				"status": "%s",
-				"user_agent": "%s",
-				"remote_addr": "%s"
-			}`, tc.args.procedure, expectedMethod, tc.wantStatus, expectedUserAgent, expectedRemoteAddr)
+			// Parse actual log output and verify specific fields
+			var logData map[string]any
+			if err := json.Unmarshal([]byte(logOutput), &logData); err != nil {
+				t.Fatalf("failed to parse log JSON: %v\nOutput: %s", err, logOutput)
+			}
 
-			// Use JSONEq for proper JSON comparison
-			assert.JSONEq(t, expectedJSON, logOutput)
+			// Verify standard fields
+			if logData["level"] != "INFO" {
+				t.Errorf("expected level INFO, got %v", logData["level"])
+			}
+			if logData["msg"] != "access log" {
+				t.Errorf("expected msg 'access log', got %v", logData["msg"])
+			}
+			if logData["rpc"] != tc.args.procedure {
+				t.Errorf("expected rpc %q, got %v", tc.args.procedure, logData["rpc"])
+			}
+			if logData["status"] != tc.wantStatus {
+				t.Errorf("expected status %q, got %v", tc.wantStatus, logData["status"])
+			}
+
+			// Verify duration_ms exists and is a number
+			if durationMs, exists := logData["duration_ms"]; !exists {
+				t.Errorf("expected duration_ms field")
+			} else if _, ok := durationMs.(float64); !ok {
+				t.Errorf("expected duration_ms to be a number, got %T", durationMs)
+			}
+
+			// Verify headers group
+			headersGroup, exists := logData["headers"]
+			if !exists {
+				t.Fatalf("expected headers group")
+			}
+
+			headersMap, ok := headersGroup.(map[string]any)
+			if !ok {
+				t.Fatalf("expected headers to be a map, got %T", headersGroup)
+			}
+
+			if headersMap["user_agent"] != expectedUserAgent {
+				t.Errorf("expected user_agent %q, got %v", expectedUserAgent, headersMap["user_agent"])
+			}
+			if headersMap["remote_addr"] != expectedRemoteAddr {
+				t.Errorf("expected remote_addr %q, got %v", expectedRemoteAddr, headersMap["remote_addr"])
+			}
+			if headersMap["method"] != expectedMethod {
+				t.Errorf("expected method %q, got %v", expectedMethod, headersMap["method"])
+			}
 		})
 	}
 }
@@ -262,17 +302,14 @@ func TestAccessLogInterceptor_HeaderExtraction(t *testing.T) {
 
 			var buf bytes.Buffer
 
-			logger := logging.New(
+			logger, err := logging.New(
 				logging.WithLevel(slog.LevelInfo),
 				logging.WithFormat(logging.FormatJSON),
 				logging.WithWriter(&buf),
-				logging.WithReplaceAttr(func(_ []string, a slog.Attr) slog.Attr {
-					if a.Key == slog.TimeKey || a.Key == "duration_ms" {
-						return slog.Attr{}
-					}
-					return a
-				}),
 			)
+			if err != nil {
+				t.Fatalf("failed to create logger: %v", err)
+			}
 
 			interceptor := logging.NewAccessLogInterceptor(logger)
 
@@ -290,31 +327,61 @@ func TestAccessLogInterceptor_HeaderExtraction(t *testing.T) {
 				procedure: "/api.UserService/GetUser",
 			}
 
-			next := func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			next := func(_ context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
 				return connect.NewResponse(&mockMessage{Value: "response"}), nil
 			}
 
 			handler := interceptor(next)
-			_, err := handler(context.Background(), mockReq)
-
-			assert.NoError(t, err)
+			_, err = handler(context.Background(), mockReq)
+			if err != nil {
+				t.Errorf("expected no error but got: %v", err)
+			}
 
 			logOutput := strings.TrimSpace(buf.String())
-			assert.NotEmpty(t, logOutput)
+			if logOutput == "" {
+				t.Errorf("expected log output but got empty")
+			}
 
-			// Build expected JSON for header extraction test
-			expectedJSON := fmt.Sprintf(`{
-				"level": "INFO",
-				"msg": "Access log",
-				"procedure": "/api.UserService/GetUser",
-				"method": "%s",
-				"status": "ok",
-				"user_agent": "%s",
-				"remote_addr": "%s"
-			}`, tc.expectedMethod, tc.expectedUserAgent, tc.expectedRemoteAddr)
+			// Parse actual log output and verify header extraction
+			var logData map[string]any
+			if err := json.Unmarshal([]byte(logOutput), &logData); err != nil {
+				t.Fatalf("failed to parse log JSON: %v\nOutput: %s", err, logOutput)
+			}
 
-			// Use JSONEq for proper JSON comparison
-			assert.JSONEq(t, expectedJSON, logOutput)
+			// Verify standard fields
+			if logData["level"] != "INFO" {
+				t.Errorf("expected level INFO, got %v", logData["level"])
+			}
+			if logData["msg"] != "access log" {
+				t.Errorf("expected msg 'access log', got %v", logData["msg"])
+			}
+			if logData["rpc"] != "/api.UserService/GetUser" {
+				t.Errorf("expected rpc '/api.UserService/GetUser', got %v", logData["rpc"])
+			}
+			if logData["status"] != "ok" {
+				t.Errorf("expected status 'ok', got %v", logData["status"])
+			}
+
+			// Verify headers group
+			headersGroup, exists := logData["headers"]
+			if !exists {
+				t.Fatalf("expected headers group")
+			}
+
+			headersMap, ok := headersGroup.(map[string]any)
+			if !ok {
+				t.Fatalf("expected headers to be a map, got %T", headersGroup)
+			}
+
+			if headersMap["user_agent"] != tc.expectedUserAgent {
+				t.Errorf("expected user_agent %q, got %v", tc.expectedUserAgent, headersMap["user_agent"])
+			}
+			if headersMap["remote_addr"] != tc.expectedRemoteAddr {
+				t.Errorf("expected remote_addr %q, got %v", tc.expectedRemoteAddr, headersMap["remote_addr"])
+			}
+			if headersMap["method"] != tc.expectedMethod {
+				t.Errorf("expected method %q, got %v", tc.expectedMethod, headersMap["method"])
+			}
 		})
 	}
 }
