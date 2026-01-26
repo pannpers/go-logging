@@ -1,6 +1,6 @@
-# Contributing to go-apperr
+# Contributing to go-logging
 
-Thank you for your interest in contributing to go-apperr! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to go-logging! This document provides guidelines and information for contributors.
 
 ## Code of Conduct
 
@@ -20,16 +20,15 @@ This project adheres to a code of conduct that we expect all contributors to fol
 
 ### Prerequisites
 
-- Go 1.21 or later (required for `log/slog` features)
-- Target version: Go 1.25
+- Go 1.25 or later
 - Git
 
 ### Setting up the development environment
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/go-apperr.git
-cd go-apperr
+git clone https://github.com/YOUR_USERNAME/go-logging.git
+cd go-logging
 
 # Install dependencies
 go mod download
@@ -89,10 +88,10 @@ golangci-lint run
 Use clear, descriptive commit messages:
 
 ```
-feat: add new error code for rate limiting
-fix: correct stack trace capture in production
+feat: add new log format option
+fix: correct trace ID extraction
 docs: update README with new examples
-test: add tests for error wrapping functionality
+test: add tests for context attributes
 ```
 
 ## Reporting Issues
@@ -143,4 +142,4 @@ If you have questions about contributing, please:
 - Start a discussion in the GitHub Discussions
 - Contact maintainers directly
 
-Thank you for contributing to go-apperr!
+Thank you for contributing to go-logging!
