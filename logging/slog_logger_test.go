@@ -267,6 +267,64 @@ func TestLogger_With(t *testing.T) {
 	validateJSONOutput(t, output, expectedFields)
 }
 
+func TestLogger_Slog(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger, err := logging.New(
+		logging.WithWriter(&buf),
+		logging.WithLevel(slog.LevelInfo),
+		logging.WithFormat(logging.FormatJSON),
+	)
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	slogLogger := logger.Slog()
+	if slogLogger == nil {
+		t.Fatal("Slog() returned nil")
+	}
+
+	// Verify the returned *slog.Logger writes to the same writer
+	slogLogger.Info("slog direct message", "key", "value")
+
+	output := buf.String()
+	expectedFields := map[string]any{
+		"level": "INFO",
+		"msg":   "slog direct message",
+		"key":   "value",
+	}
+	validateJSONOutput(t, output, expectedFields)
+}
+
+func TestLogger_Slog_WithAttrs(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger, err := logging.New(
+		logging.WithWriter(&buf),
+		logging.WithLevel(slog.LevelInfo),
+		logging.WithFormat(logging.FormatJSON),
+	)
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	// Slog() on a Logger created with With() should preserve attributes
+	childLogger := logger.With(slog.String("service", "test-service"))
+	slogLogger := childLogger.Slog()
+
+	slogLogger.Info("child slog message")
+
+	output := buf.String()
+	expectedFields := map[string]any{
+		"level":   "INFO",
+		"msg":     "child slog message",
+		"service": "test-service",
+	}
+	validateJSONOutput(t, output, expectedFields)
+}
+
 func TestLogger_ComplexScenario(t *testing.T) {
 	t.Parallel()
 

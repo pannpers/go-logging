@@ -155,6 +155,13 @@ func (l *Logger) Error(ctx context.Context, msg string, err error, attrs ...slog
 	l.log(ctx, slog.LevelError, msg, allArgs...)
 }
 
+// Slog returns the underlying *slog.Logger.
+// This is useful for integrating with libraries that accept a standard *slog.Logger,
+// such as watermill.NewSlogLogger().
+func (l *Logger) Slog() *slog.Logger {
+	return l.logger
+}
+
 // With returns a new Logger that includes the given attributes in all log entries.
 // This is useful for creating service-specific or component-specific loggers
 // that always include certain contextual information.
