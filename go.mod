@@ -2,6 +2,8 @@ module github.com/pannpers/go-logging
 
 go 1.25
 
+toolchain go1.25.7
+
 require (
 	connectrpc.com/connect v1.16.0
 	go.opentelemetry.io/otel/trace v1.39.0
