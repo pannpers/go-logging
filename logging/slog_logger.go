@@ -50,6 +50,7 @@ package logging
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -134,7 +135,8 @@ func (l *Logger) Warn(ctx context.Context, msg string, attrs ...slog.Attr) {
 
 // Error logs an error-level message with an error object and optional attributes.
 // The error object will be automatically added as an "error" attribute.
-// If the error implements slog.LogValue, its custom representation will be used.
+// If any error in the chain implements slog.LogValuer, its structured
+// representation will be used instead of the plain error string.
 //
 // The message will include any attributes stored in the context via SetAttrs,
 // OpenTelemetry trace information if available, the error attribute, and the provided attributes.
@@ -146,7 +148,14 @@ func (l *Logger) Warn(ctx context.Context, msg string, attrs ...slog.Attr) {
 //		slog.Int("port", 5432),
 //	)
 func (l *Logger) Error(ctx context.Context, msg string, err error, attrs ...slog.Attr) {
-	errorAttr := slog.Any("error", err)
+	var errorAttr slog.Attr
+
+	var lv slog.LogValuer
+	if errors.As(err, &lv) {
+		errorAttr = slog.Any("error", lv)
+	} else {
+		errorAttr = slog.Any("error", err)
+	}
 
 	allArgs := make([]slog.Attr, 0, len(attrs)+1)
 	allArgs = append(allArgs, errorAttr) // Error attribute first for better readability

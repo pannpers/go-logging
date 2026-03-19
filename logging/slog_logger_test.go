@@ -179,6 +179,68 @@ func TestLogger_Error(t *testing.T) {
 	validateJSONOutput(t, output, expectedFields)
 }
 
+func TestLogger_Error_WrappedLogValuer(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger, err := logging.New(
+		logging.WithWriter(&buf),
+		logging.WithLevel(slog.LevelError),
+		logging.WithFormat(logging.FormatJSON),
+	)
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	// Wrap a LogValuer error with fmt.Errorf — simulating the real-world scenario
+	// where structured error attributes are lost because *fmt.wrapError does not
+	// implement slog.LogValuer.
+	inner := &testError{
+		Message: "not found",
+		Code:    "404",
+	}
+	wrapped := fmt.Errorf("service call failed: %w", inner)
+
+	logger.Error(context.Background(), "request failed", wrapped)
+
+	output := buf.String()
+	expectedFields := map[string]any{
+		"level": "ERROR",
+		"msg":   "request failed",
+		"error": map[string]any{
+			"message": "not found",
+			"code":    "404",
+		},
+	}
+	validateJSONOutput(t, output, expectedFields)
+}
+
+func TestLogger_Error_PlainError(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger, err := logging.New(
+		logging.WithWriter(&buf),
+		logging.WithLevel(slog.LevelError),
+		logging.WithFormat(logging.FormatJSON),
+	)
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	// Plain error without LogValuer should still log as string
+	plainErr := errors.New("something went wrong")
+	logger.Error(context.Background(), "plain error", plainErr)
+
+	output := buf.String()
+	expectedFields := map[string]any{
+		"level": "ERROR",
+		"msg":   "plain error",
+		"error": "something went wrong",
+	}
+	validateJSONOutput(t, output, expectedFields)
+}
+
 func TestLogger_WithTraceContext(t *testing.T) {
 	t.Parallel()
 
