@@ -18,7 +18,7 @@
 
 ## Development Guidelines
 
-1.  **Go Version**: Target Go 1.26.
+1.  **Go Version**: Target Go 1.27.
 2.  **Dependencies**:
     - `log/slog` (Standard Library)
     - `go.opentelemetry.io/otel` (Tracing)

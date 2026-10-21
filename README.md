@@ -16,7 +16,7 @@ A shared library for structured logging using `log/slog`. `go-logging` provides 
 
 ## Requirements
 
-- Go 1.26 or later
+- Go 1.27 or later
 
 ## Installation
 

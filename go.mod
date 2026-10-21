@@ -1,6 +1,8 @@
 module github.com/pannpers/go-logging
 
-go 1.26.0
+go 1.27
+
+toolchain go1.27.3
 
 require (
 	connectrpc.com/connect v1.16.0
