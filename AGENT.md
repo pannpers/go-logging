@@ -18,11 +18,11 @@
 
 ## Development Guidelines
 
-1.  **Go Version**: Target Go 1.25.
+1.  **Go Version**: Target Go 1.27.
 2.  **Dependencies**:
     - `log/slog` (Standard Library)
     - `go.opentelemetry.io/otel` (Tracing)
-    - `connectrpc.com/connect` (RPC support)
+    - `connectrpc.com/connect` and `connectrpc.com/connect/v2` (RPC support; v1 interceptor in `logging`, v2 interceptor in `logging/connectv2`)
 3.  **Testing**: Ensure all new features are covered by unit tests. Use `go test ./...`.
 4.  **Linting**: Use `golangci-lint` to maintain code quality.
 

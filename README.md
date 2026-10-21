@@ -11,12 +11,12 @@ A shared library for structured logging using `log/slog`. `go-logging` provides 
 - **Structured Logging**: Built on top of Go's standard `log/slog` library.
 - **OpenTelemetry Integration**: Automatic extraction of trace and span IDs from context.
 - **Context Attributes**: Store and retrieve logging attributes within the context.
-- **Connect-RPC Support**: Middleware/Interceptor for Connect-RPC (mentioned in package docs).
+- **Connect-RPC Support**: Access log interceptors for connect-go v1 and v2 that write the same log fields.
 - **Configurable**: Support for JSON/Text formats, log levels, and output writers.
 
 ## Requirements
 
-- Go 1.25 or later
+- Go 1.27 or later
 
 ## Installation
 
@@ -81,6 +81,55 @@ ctx = logging.SetAttrs(ctx,
 // All logs using this ctx will include request_id and user_id
 logger.Info(ctx, "Processing request")
 ```
+
+### Connect-RPC Access Logs
+
+Both interceptors write one `access log` record per RPC with the same attributes:
+`rpc`, `status` (`ok`, a Connect error code, or `unknown` for other errors),
+`duration_ms`, and a `headers` group (`user_agent`, `remote_addr`, `method`,
+plus any headers selected with `WithHTTPHeaders`).
+
+connect-go v1 (`connectrpc.com/connect`):
+
+```go
+import (
+    "connectrpc.com/connect"
+
+    "github.com/pannpers/go-logging/logging"
+)
+
+interceptor := logging.NewAccessLogInterceptor(logger,
+    logging.WithHTTPHeaders([]string{"X-Request-Id"}),
+)
+path, handler := userv1connect.NewUserServiceHandler(svc, connect.WithInterceptors(interceptor))
+```
+
+connect-go v2 (`connectrpc.com/connect/v2`):
+
+```go
+import (
+    "connectrpc.com/connect/v2"
+
+    "github.com/pannpers/go-logging/logging"
+    loggingconnect "github.com/pannpers/go-logging/logging/connectv2"
+)
+
+srv := connect.NewServer(
+    loggingconnect.NewAccessLogInterceptor(logger,
+        logging.WithHTTPHeaders([]string{"X-Request-Id"}),
+    ),
+)
+```
+
+Differences in the v2 interceptor:
+
+- **Streaming RPCs are logged.** The v1 interceptor is unary-only. The v2
+  interceptor wraps every RPC type, so each client, server, or bidi stream
+  produces one record when the handler returns, and `duration_ms` covers the
+  whole stream.
+- **`duration_ms` includes request decoding.** connect-go v2 runs interceptors
+  before decompression and unmarshaling, so the measured time covers slightly
+  more work than in v1.
 
 ## Contributing
 
