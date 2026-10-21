@@ -1,16 +1,15 @@
 module github.com/pannpers/go-logging
 
-go 1.25
-
-toolchain go1.25.7
+go 1.26.0
 
 require (
 	connectrpc.com/connect v1.16.0
+	connectrpc.com/connect/v2 v2.0.1
 	go.opentelemetry.io/otel/trace v1.39.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
